@@ -1,0 +1,37 @@
+# ---------- macOS ----------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Icon?
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Editors / IDEs ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------- AWSIM map build outputs (regenerable from data/) ----------
+# The PCD, Lanelet2 OSM, map_origin.yaml, and trajectory CSV under map/<track>/
+# are produced by mcap_to_SIM/build_map.py and can be rebuilt from the bag in
+# data/<track>/cleaned.mcap, so they're excluded.
+map/
