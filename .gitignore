@@ -35,3 +35,8 @@ env/
 # are produced by mcap_to_SIM/build_map.py and can be rebuilt from the bag in
 # data/<track>/cleaned.mcap, so they're excluded.
 map/
+
+# ---------- TM99 sample blobs (~90 GB each) ----------
+# Fetched on demand by data/TM99_uphill/download.sh — too large for git/LFS.
+data/TM99_uphill/raw.db3
+data/TM99_uphill/cleaned.mcap

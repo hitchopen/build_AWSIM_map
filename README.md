@@ -32,10 +32,11 @@ map/<track>/{pointcloud_map.pcd,
 
 ```
 build_AWSIM_map/
-├── data/                       Sample sensor recordings (kept in repo as input data)
+├── data/                       Sample sensor recordings (fetched on demand)
 │   └── TM99_uphill/
-│       ├── raw.db3                 ROS 2 humble bag, SQLite-3 storage
-│       └── cleaned.mcap            same data, repacked as MCAP with embedded schemas
+│       ├── download.sh             pulls the two large blobs from OneDrive
+│       ├── raw.db3                 ROS 2 humble bag, SQLite-3 storage  (~89 GiB, gitignored)
+│       └── cleaned.mcap            same data, repacked as MCAP         (~89 GiB, gitignored)
 ├── db3_to_mcap_converter/      .db3 → .mcap (CDR bytes pass through verbatim,
 │                               schemas re-emitted in canonical ROS 2 form so
 │                               Foxglove decodes every topic — including six
@@ -51,6 +52,13 @@ Each subdirectory has its own README with the run commands, expected runtime,
 and tunables.
 
 ## Quick start
+
+The TM99 sample bag (~180 GiB total) isn't stored in the repo — fetch it
+from the sponsor's OneDrive mirror once before running anything else:
+
+```bash
+bash data/TM99_uphill/download.sh
+```
 
 ```bash
 # 1. one-off: convert the source bag
