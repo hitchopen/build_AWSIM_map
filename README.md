@@ -110,6 +110,91 @@ and `map/TM99_uphill/map_origin.yaml` carries the geodetic anchor — feed
 both to Autoware's `map_loader` and the simulator knows where every point
 sits in WGS84. `lanelet2_map.osm` is already in geodetic lat/lon natively.
 
+## Launching in AWSIM
+
+[AWSIM](https://github.com/tier4/AWSIM) is the open-source Unity-based driving
+simulator from TIER IV. AWSIM provides the simulated vehicle, sensors, and
+scene; **Autoware** (running alongside AWSIM over ROS 2) consumes the map
+files this repo produces and uses them for localisation, planning, and
+visualisation.
+
+The four artefacts in `map/<track>/` are the **Autoware side** of an AWSIM
++ Autoware co-simulation. AWSIM itself runs a Unity scene that mirrors the
+real environment; you don't load the PCD into Unity.
+
+### 1. Lay the map files out the way Autoware expects
+
+Pick any directory and drop the four artefacts plus a
+`map_projector_info.yaml` next to them:
+
+```
+my_track_map/
+├── pointcloud_map.pcd                ← copy from map/TM99_uphill/
+├── lanelet2_map.osm                  ← copy from map/TM99_uphill/
+├── map_projector_info.yaml           ← create — see below
+└── (trajectory_enu.csv)              ← optional, for analysis only
+```
+
+Autoware reads `map_projector_info.yaml` to know how local-Cartesian PCD
+coordinates relate to global lat/lon. Generate it from the values in
+`map_origin.yaml`:
+
+```yaml
+# map_projector_info.yaml — tells Autoware the map is in a local-tangent
+# ENU frame anchored at this geodetic point.
+projector_type: local
+vertical_datum: WGS84
+map_origin:
+  latitude:  29.0697514213       # copy from map_origin.yaml
+  longitude: 110.4705323434
+  altitude:  327.9443
+```
+
+For Autoware-style MGRS projection instead of local ENU, set
+`projector_type: MGRS` and replace `map_origin` with `mgrs_grid:` plus the
+relevant grid string — AWSIM's pre-shipped tutorial maps use this scheme.
+
+### 2. Get AWSIM and Autoware
+
+- **AWSIM** — clone from <https://github.com/tier4/AWSIM> and follow the
+  setup guide at <https://tier4.github.io/AWSIM/>. Easiest path is the
+  pre-built Linux binary; build from Unity source only if you need a custom
+  scene that matches a non-tutorial track.
+- **Autoware** — follow the [Universe install guide](https://autowarefoundation.github.io/autoware-documentation/main/installation/),
+  prebuilt Docker images cover most setups.
+
+### 3. Launch the simulator
+
+Run AWSIM and Autoware in two terminals:
+
+```bash
+# Terminal 1 — AWSIM (Unity)
+./AWSIM.x86_64                                              # or `AWSIM.app` on macOS
+```
+
+```bash
+# Terminal 2 — Autoware, pointed at this map
+ros2 launch autoware_launch e2e_simulator.launch.xml \
+    map_path:=$(pwd)/my_track_map \
+    vehicle_model:=sample_vehicle \
+    sensor_model:=awsim_sensor_kit
+```
+
+`e2e_simulator.launch.xml` brings up `map_loader`, `pointcloud_map_loader`,
+`lanelet2_map_loader`, NDT localisation, mission/behaviour planning, and the
+Rviz visualisation. AWSIM publishes simulated `/sensing/lidar/...` and
+`/sensing/imu` topics; Autoware locks onto the PCD with NDT, looks up the
+ego pose against the Lanelet2, and feeds back planning/control to the
+simulator. You can drive a route by setting a goal in Rviz the usual way.
+
+### 4. Quick visualisation without Autoware
+
+If you just want to look at the map (no planner, no localiser), drag
+`pointcloud_map.pcd` and `lanelet2_map.osm` into [Foxglove](https://foxglove.dev/)
+or open the OSM in JOSM (with the `lanelet2-plugin`). Both files carry
+geodetic coordinates natively, so the global anchor is preserved without
+needing `map_projector_info.yaml`.
+
 ## About the TM99 sample
 
 **TM99** stands for **T**ianmen **M**ountain **99**-Turn — the famously serpentine
@@ -130,10 +215,11 @@ a sponsor of the **Hitch Open World AI Championships**. It is included here
 
 ## Credits
 
-Pipeline assembled by **Allen Yang** (allenyang@berkeley.edu).
+This project was designed and is maintained by **Dr. Allen Y. Yang** (Hitch
+Interactive · University of California, Berkeley).
 
-Sample dataset (TM99 uphill run): **Whale Dynamic**, contributed in support of
-the **Hitch Open World AI Championships**.
+Sample dataset (TM99 uphill run): **Whale Dynamic**, contributed in support
+of the **Hitch Open World AI Championships**.
 
 ## License
 
