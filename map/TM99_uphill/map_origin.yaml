@@ -1,0 +1,6 @@
+# AWSIM map origin (ENU local-tangent anchor)
+origin:
+  latitude:  29.0697514213
+  longitude: 110.4705323434
+  altitude:  327.9443
+frame: ENU

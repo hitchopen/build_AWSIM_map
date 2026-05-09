@@ -30,13 +30,17 @@ env/
 *.swo
 *~
 
-# ---------- AWSIM map build outputs (regenerable from data/) ----------
-# The PCD, Lanelet2 OSM, map_origin.yaml, and trajectory CSV under map/<track>/
-# are produced by mcap_to_SIM/build_map.py and can be rebuilt from the bag in
-# data/<track>/cleaned.mcap, so they're excluded.
-map/
+# ---------- AWSIM map debug outputs ----------
+# `--save-ego-debug-pcd` writes this companion file showing the points the
+# vehicle-self filter rejected. Regenerable, so don't commit it.
+map/**/ego_returns.pcd
 
 # ---------- TM99 sample blobs (~90 GB each) ----------
 # Fetched on demand by data/TM99_uphill/download.sh — too large for git/LFS.
 data/TM99_uphill/raw.db3
-data/TM99_uphill/cleaned.mcap
+
+# ---------- generated MCAP bags (anywhere in the repo) ----------
+# Every .mcap is a derived artefact — `cleaned_tf.mcap` is regenerable from
+# `raw.db3` via convert_db3_to_mcap.py, and any test slices written to
+# /tmp/... or under data/ are likewise reproducible. Never commit them.
+*.mcap

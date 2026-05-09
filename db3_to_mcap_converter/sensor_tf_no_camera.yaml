@@ -1,0 +1,55 @@
+# TM99_uphill 数据包由 Whale Dynamic 提供的官方传感器外参。
+# 所有变换均表示为 T_sensor → imu，即：
+#   p_imu = R · p_sensor + t
+# 其中 "imu" 即数据包内 INSPVAX / RawImu / EKF 位姿等话题的 header.frame_id，
+# 同时也是本文件的参考坐标系。
+#
+# 坐标系约定（Whale Dynamic 确认）：
+#   所有坐标系均为 FLU（X 前，Y 左，Z 上），符合 ROS REP-103 标准。
+#   注意：Novatel SPAN 数据包内的姿态字段（roll/pitch/azimuth）原生为 NED/FRD
+#   约定，使用前需按 FLU 进行转换。
+#
+# 坐标系名称（child_frame_id）：
+#   imu                     参考坐标系；数据包中所有 INSPVAX / RawImu / EKF
+#                            位姿话题的 header.frame_id
+#   hesai_lidar             /lidar_points_compressed
+#                            （主激光雷达，FLU；相对于 imu 绕 Z 轴旋转 180°，
+#                              即车后向安装）
+#   hesai_lidar_secondary   /lidar_points_2_compressed
+#                            （副激光雷达，FLU；与主雷达的源 frame_id
+#                              "hesai_lidar" 共用，需在下游消费时另行区分）
+#   pp7_odom                独立里程计坐标系，相对 imu 绕 Z 轴 +90°，
+#                            供 /pp7/ekf_odom 等里程计话题使用
+
+reference_frame: imu
+
+sensors:
+  lidar_primary:
+    parent: imu
+    child_frame_id: hesai_lidar
+    translation_m: [0.000, -0.175, 0.130]
+    rotation_quat_xyzw: [+0.000000000, +0.000000000, +1.000000000, +0.000000000]   # R_z(180°)
+    rotation_R:
+      - [-1.000000000, +0.000000000, +0.000000000]
+      - [+0.000000000, -1.000000000, +0.000000000]
+      - [+0.000000000, +0.000000000, +1.000000000]
+
+  pp7_odom:
+    parent: imu
+    child_frame_id: pp7_odom
+    translation_m: [0.000, 0.000, 0.000]
+    rotation_quat_xyzw: [+0.000000000, +0.000000000, +0.707106781, +0.707106781]   # R_z(+90°)
+    rotation_R:
+      - [+0.000000000, -1.000000000, +0.000000000]
+      - [+1.000000000, +0.000000000, +0.000000000]
+      - [+0.000000000, +0.000000000, +1.000000000]
+
+  lidar_secondary:
+    parent: imu
+    child_frame_id: hesai_lidar_secondary
+    translation_m: [+0.015420900, +0.470291000, -0.265632000]
+    rotation_quat_xyzw: [-0.002563334, +0.254171391, +0.967140486, +0.005441828]
+    rotation_R:
+      - [-0.999930000, -0.011830000, -0.002190000]
+      - [+0.009220000, -0.870730000, +0.491670000]
+      - [-0.007720000, +0.491610000, +0.870780000]

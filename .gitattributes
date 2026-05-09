@@ -1,0 +1,4 @@
+# PointCloud Data files often exceed GitHub's 100 MB hard limit (the TM99
+# track map's pointcloud_map.pcd is ~855 MB), so route them through Git LFS.
+# Run `git lfs install` once per machine before cloning or pushing.
+*.pcd filter=lfs diff=lfs merge=lfs -text

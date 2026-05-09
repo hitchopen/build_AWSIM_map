@@ -1,0 +1,5 @@
+numpy>=1.24
+mcap>=1.0
+mcap-ros2-support>=0.5
+rosbags>=0.9
+PyYAML>=6.0        # used by inject_tf_static.py to read sensor_tf_no_camera.yaml

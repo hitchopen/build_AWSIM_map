@@ -10,22 +10,24 @@ AWSIM (and Autoware behind it) needs to load a track for self-driving simulation
 - **`map_origin.yaml`** — the geodetic anchor (lat / lon / alt) for the local
   ENU frame the rest of the pipeline lives in.
 
-The pipeline runs in two stages — both written for a stock Python install,
-no ROS or PCL required:
+The pipeline runs in two stages — pure-Python, no ROS or PCL required:
 
 ```
 data/<track>/raw.db3                            (input: ROS 2 SQLite-3 bag)
                 │
                 │  db3_to_mcap_converter/convert_db3_to_mcap.py
+                │     (one pass: embeds schemas, bakes Whale Dynamic's
+                │      sensor_tf_no_camera.yaml into /tf_static, and
+                │      renames the secondary lidar's frame_id)
                 ▼
-data/<track>/cleaned.mcap                       (Foxglove-loadable MCAP)
+data/<track>/cleaned_tf.mcap                    (Foxglove-loadable, TF-aware)
                 │
                 │  mcap_to_SIM/build_map.py
                 ▼
 map/<track>/{pointcloud_map.pcd,
              lanelet2_map.osm,
              map_origin.yaml,
-             trajectory_enu.csv}                (AWSIM-ready map)
+             trajectory_enu.csv}                (AWSIM-ready map, GNSS-anchored)
 ```
 
 ## Repository layout
@@ -34,50 +36,79 @@ map/<track>/{pointcloud_map.pcd,
 build_AWSIM_map/
 ├── data/                       Sample sensor recordings (fetched on demand)
 │   └── TM99_uphill/
-│       ├── download.sh             pulls the two large blobs from OneDrive
-│       ├── raw.db3                 ROS 2 humble bag, SQLite-3 storage  (~89 GiB, gitignored)
-│       └── cleaned.mcap            same data, repacked as MCAP         (~89 GiB, gitignored)
-├── db3_to_mcap_converter/      .db3 → .mcap (CDR bytes pass through verbatim,
-│                               schemas re-emitted in canonical ROS 2 form so
-│                               Foxglove decodes every topic — including six
-│                               vendor types from `starneto_gps_msgs` that the
-│                               .db3 layout couldn't carry)
-├── mcap_to_SIM/                .mcap → AWSIM map (pose extraction, voxel-grid
-│                               point cloud accumulation, Lanelet2 OSM seed)
-└── map/                        Build outputs (gitignored — regenerable)
-    └── TM99_uphill/
+│       ├── download.sh             pulls the source bag from OneDrive
+│       ├── raw.db3                 ROS 2 humble bag, SQLite-3 storage      (~89 GiB, gitignored)
+│       └── cleaned_tf.mcap         schemas embedded + /tf_static baked in  (~89 GiB, gitignored)
+├── db3_to_mcap_converter/      .db3 → .mcap converter (one pass: embeds
+│                               canonical ROS 2 schemas, bakes Whale
+│                               Dynamic's sensor_tf_no_camera.yaml into
+│                               /tf_static, and renames the secondary
+│                               lidar's frame_id)
+├── mcap_to_SIM/                cleaned_tf.mcap → AWSIM map (pose extraction,
+│                               dual-lidar voxel accumulation with ego-bbox
+│                               vehicle-self filter, Lanelet2 OSM seed)
+└── map/                        Pre-built AWSIM map outputs (tracked in repo;
+    └── TM99_uphill/                pointcloud_map.pcd via Git LFS)
+        ├── pointcloud_map.pcd       binary PCD, x/y/z/intensity (LFS-tracked, ~855 MB)
+        ├── lanelet2_map.osm         seed Lanelet2 (geodetic lat/lon)
+        ├── map_origin.yaml          ENU geodetic anchor
+        └── trajectory_enu.csv       decimated ego trajectory in ENU
 ```
 
 Each subdirectory has its own README with the run commands, expected runtime,
 and tunables.
 
+## Cloning the repo (Git LFS)
+
+The map's `pointcloud_map.pcd` is ~855 MB and is tracked via Git LFS, so
+make sure LFS is installed before you clone or push:
+
+```bash
+git lfs install                           # one-time, per machine
+git clone https://github.com/hitchopen/build_AWSIM_map.git
+# or, if you already cloned without LFS active:
+git lfs pull
+```
+
+Without LFS, the PCD comes down as a tiny pointer file — Autoware will
+reject it.
+
 ## Quick start
 
-The TM99 sample bag (~180 GiB total) isn't stored in the repo — fetch it
-from the sponsor's OneDrive mirror once before running anything else:
+If you only want to *use* the pre-built map, you can stop after `git clone +
+git lfs pull` — `map/TM99_uphill/` already contains the four AWSIM-ready
+artefacts.
+
+To **regenerate** the map from the source bag (or when working with a new
+recording), the TM99 sample bag (~180 GiB total) isn't stored in the repo —
+fetch it from the sponsor's OneDrive mirror once first:
 
 ```bash
 bash data/TM99_uphill/download.sh
 ```
 
 ```bash
-# 1. one-off: convert the source bag
+# 1. one-off: convert the source bag (schemas + /tf_static in one pass)
 cd db3_to_mcap_converter
-pip install --user mcap mcap-ros2-support rosbags
+pip install --user -r requirements.txt
 python3 convert_db3_to_mcap.py \
     --src ../data/TM99_uphill/raw.db3 \
-    --dst ../data/TM99_uphill/cleaned.mcap \
-    --compression none      # ~70 min, ~96 GB output
+    --dst ../data/TM99_uphill/cleaned_tf.mcap   # ~60–90 min, ~96 GB output
 
 # 2. build the AWSIM map
 cd ../mcap_to_SIM
 pip install --user -r requirements.txt
 python3 build_map.py \
-    --mcap ../data/TM99_uphill/cleaned.mcap \
+    --mcap ../data/TM99_uphill/cleaned_tf.mcap \
     --out-dir ../map/TM99_uphill \
     --voxel-size 0.2 \
-    --lidar-decimate 5      # ~5–10 min
+    --lidar-decimate 5                          # ~5–10 min
 ```
+
+After step 2 finishes, `map/TM99_uphill/pointcloud_map.pcd` is in local ENU
+and `map/TM99_uphill/map_origin.yaml` carries the geodetic anchor — feed
+both to Autoware's `map_loader` and the simulator knows where every point
+sits in WGS84. `lanelet2_map.osm` is already in geodetic lat/lon natively.
 
 ## About the TM99 sample
 
