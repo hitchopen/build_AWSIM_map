@@ -223,6 +223,9 @@ of the **Hitch Open World AI Championships**.
 
 ## License
 
-See `LICENSE` (TBD). The sample dataset under `data/TM99_uphill/` retains its
-original ownership by Whale Dynamic — please refer to their terms before
-redistribution.
+This repository, including the sample dataset under `data/TM99_uphill/`, is
+licensed under the Creative Commons Attribution-NonCommercial 4.0 International
+license (CC BY-NC 4.0). See `LICENSE` for details.
+
+The TM99 sample dataset retains its original attribution to Whale Dynamic and is
+included under the same CC BY-NC 4.0 terms for non-commercial use.
