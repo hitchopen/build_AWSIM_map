@@ -35,9 +35,14 @@ env/
 # vehicle-self filter rejected. Regenerable, so don't commit it.
 map/**/ego_returns.pcd
 
-# ---------- TM99 sample blobs (~90 GB each) ----------
-# Fetched on demand by data/TM99_uphill/download.sh — too large for git/LFS.
-data/TM99_uphill/raw.db3
+# ---------- sample-track sensor blobs (~90 GB each) ----------
+# Fetched on demand by each track's data/<track>/download.sh — too large
+# for git/LFS. Covers raw.db3, partial downloads (raw.tar.xz / raw.zip), and
+# any of the well-known archive wrappers OneDrive may use during transfer.
+data/**/raw.db3
+data/**/raw.tar.xz
+data/**/raw.tar.gz
+data/**/raw.zip
 
 # ---------- generated MCAP bags (anywhere in the repo) ----------
 # Every .mcap is a derived artefact — `cleaned_tf.mcap` is regenerable from
