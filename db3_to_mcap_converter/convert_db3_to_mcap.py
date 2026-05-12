@@ -20,7 +20,7 @@ What this does in a single streaming sweep over the SQLite source:
      resolve to distinct mounts in the TF tree rooted at `imu`.
 
 The output is one bag — `cleaned_tf.mcap` — that's directly usable by
-Foxglove and by mcap_to_SIM/build_map.py. There's no intermediate file.
+Foxglove and by mcap_to_pcd/build_map.py. There's no intermediate file.
 
 Run
 ---

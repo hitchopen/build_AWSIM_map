@@ -106,10 +106,20 @@ def parse_args():
                         'Pass "none" to disable.')
 
     # Z gate in ENU (catches sensor glitches, sky points, etc.)
-    p.add_argument('--min-z', type=float, default=-5.0,
-                   help='Drop ENU points below origin by this much. Default −5.')
-    p.add_argument('--max-z', type=float, default=300.0,
-                   help='Drop ENU points above origin by this much. Default +300.')
+    # NOTE: defaults are RELATIVE to the trajectory's altitude range, not to
+    # the ENU origin. A fixed cap (e.g. +300) silently truncates lidar coverage
+    # on tracks with elevation gain greater than the cap — see README.
+    p.add_argument('--min-z-margin', type=float, default=10.0,
+                   help='Keep ENU points down to (trajectory_z_min − this many m). Default 10.')
+    p.add_argument('--max-z-margin', type=float, default=100.0,
+                   help='Keep ENU points up to (trajectory_z_max + this many m). Default 100 — '
+                        'enough to capture cliff face above the road on steep climbs.')
+    p.add_argument('--min-z', type=float, default=None,
+                   help='Override the auto-computed lower Z cutoff (absolute ENU m). '
+                        'If set, --min-z-margin is ignored.')
+    p.add_argument('--max-z', type=float, default=None,
+                   help='Override the auto-computed upper Z cutoff (absolute ENU m). '
+                        'If set, --max-z-margin is ignored.')
 
     # Trajectory filtering
     p.add_argument('--accept-propagated', action='store_true',
@@ -429,6 +439,20 @@ def main():
               f't=({tf.t[0]:+.3f}, {tf.t[1]:+.3f}, {tf.t[2]:+.3f}) m', flush=True)
 
     enu, traj = extract_trajectory(args.mcap, args.accept_propagated, origin)
+
+    # Resolve the Z gate against the trajectory's actual altitude range. A
+    # fixed default like --max-z=+300 will silently clip lidar coverage on any
+    # track whose elevation gain exceeds the cap (e.g. TM99 climbs ~715 m, so
+    # +300 used to drop ~60% of the climb's lidar returns without warning).
+    traj_z = traj.all_positions()[:, 2]
+    traj_z_min, traj_z_max = float(traj_z.min()), float(traj_z.max())
+    if args.min_z is None:
+        args.min_z = traj_z_min - args.min_z_margin
+    if args.max_z is None:
+        args.max_z = traj_z_max + args.max_z_margin
+    print(f'[zgate] trajectory Z ∈ [{traj_z_min:+.2f}, {traj_z_max:+.2f}] m  '
+          f'→ keeping ENU points with z ∈ [{args.min_z:+.2f}, {args.max_z:+.2f}] m '
+          f'(margins: −{args.min_z_margin:.0f}/+{args.max_z_margin:.0f})', flush=True)
 
     # Trajectory CSV (before lidar pass — useful even if PCD aborts)
     traj_csv = out_dir / 'trajectory_enu.csv'

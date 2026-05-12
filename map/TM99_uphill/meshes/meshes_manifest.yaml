@@ -1,0 +1,23 @@
+frame: ENU
+note: "Drop these meshes into a Unity scene with the listed layer + MeshCollider.\
+  \ RGL material categories are advisory hints for AWSIM's lidar simulation \u2014\
+  \ set in the RGL Mesh Material Properties asset."
+meshes:
+- file: ground.obj
+  unity_layer: Ground
+  unity_tag: Ground
+  rgl_material: asphalt
+  collider: MeshCollider
+  static: true
+- file: wall_left.obj
+  unity_layer: Wall
+  unity_tag: Wall
+  rgl_material: rock
+  collider: MeshCollider
+  static: true
+- file: wall_right.obj
+  unity_layer: Wall
+  unity_tag: Wall
+  rgl_material: metal
+  collider: MeshCollider
+  static: true

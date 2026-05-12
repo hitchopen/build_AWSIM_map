@@ -56,7 +56,7 @@ Python ≥ 3.10. No ROS or PCL needed — `rosbags` is a pure-Python typestore.
 ## Run
 
 ```bash
-cd /Users/yang/Library/CloudStorage/OneDrive-IntelligentRacingInc/GitHub/build_AWSIM_map/db3_to_mcap_converter
+cd db3_to_mcap_converter            # from the repo root
 
 python3 convert_db3_to_mcap.py \
     --src ../data/TM99_uphill/raw.db3 \
@@ -138,7 +138,7 @@ Convention is FLU throughout (X forward, Y left, Z up), per ROS REP-103.
 
 Note: SPAN's INSPVAX (`roll, pitch, azimuth`) angles are still in NED/FRD
 convention even though `imu` is FLU; downstream consumers must convert.
-`mcap_to_SIM/lib_pose.py` does this conversion correctly.
+`mcap_to_pcd/lib_pose.py` does this conversion correctly.
 
 ## Files
 

@@ -1,0 +1,24 @@
+pcd_to_meshes summary
+=====================
+input PCD       : ../map/TM99_uphill/pointcloud_map.pcd
+input trajectory: ../map/TM99_uphill/trajectory_enu.csv
+corridor half-w : 12.0 m
+vertical thresh : |n_z| < 0.4 (k=16)
+
+ground.obj
+  vertices: 913877
+  triangles: 1802922
+  cell_size_m: 0.5
+
+wall_left.obj
+  vertices: 267047
+  triangles: 486082
+  arclength_cell_m: 1.0
+  height_cell_m: 1.0
+
+wall_right.obj
+  vertices: 237675
+  triangles: 428823
+  arclength_cell_m: 1.0
+  height_cell_m: 1.0
+

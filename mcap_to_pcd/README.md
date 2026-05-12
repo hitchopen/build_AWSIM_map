@@ -1,8 +1,7 @@
-# mcap → AWSIM track map
+# MCAP → Autoware PCD + Lanelet2 map
 
-Builds the four artefacts an AWSIM/Autoware simulation needs to load a
-track, straight from the cleaned-and-TF-injected MCAP that
-[`db3_to_mcap_converter/inject_tf_static.py`](../db3_to_mcap_converter/)
+Builds the Autoware-side map artefacts from the cleaned-and-TF-injected
+MCAP that [`db3_to_mcap_converter/convert_db3_to_mcap.py`](../db3_to_mcap_converter/)
 produces:
 
 ```
@@ -25,14 +24,9 @@ data/<track>/raw.db3
     │
     │  db3_to_mcap_converter/convert_db3_to_mcap.py
     ▼
-data/<track>/cleaned.mcap
-    │
-    │  db3_to_mcap_converter/inject_tf_static.py
-    │     (uses sensor_tf_no_camera.yaml from Whale Dynamic)
-    ▼
 data/<track>/cleaned_tf.mcap        ← /tf_static baked in, secondary lidar renamed
     │
-    │  mcap_to_SIM/build_map.py     ← THIS DIRECTORY
+    │  mcap_to_pcd/build_map.py     ← THIS DIRECTORY
     ▼
 map/<track>/{pointcloud_map.pcd,
              lanelet2_map.osm,
@@ -41,8 +35,8 @@ map/<track>/{pointcloud_map.pcd,
 ```
 
 `build_map.py` reads `/tf_static` directly from the bag — no separate YAML
-needed at this stage. If you forget to run `inject_tf_static.py` first,
-`build_map.py` will refuse to start with a clear error.
+needed at this stage. If you convert with `--no-tf` or otherwise omit
+`/tf_static`, `build_map.py` will refuse to start with a clear error.
 
 ## What the build does
 
@@ -95,7 +89,7 @@ Python ≥ 3.10. No ROS or PCL needed.
 ## Run
 
 ```bash
-cd /Users/yang/Library/CloudStorage/OneDrive-IntelligentRacingInc/GitHub/build_AWSIM_map/mcap_to_SIM
+cd mcap_to_pcd                      # from the repo root
 
 python3 build_map.py \
     --mcap ../data/TM99_uphill/cleaned_tf.mcap \
@@ -105,8 +99,9 @@ python3 build_map.py \
 ```
 
 Expected runtime: **5–10 min** on a modern laptop for the full TM99 bag
-(94 Hz INSPVAX × 1860 s + 2 Hz lidar × 1860 s × 2 streams). Disk: ~300–600 MB
-PCD at 0.2 m voxel.
+(94 Hz INSPVAX × 1860 s + 2 Hz lidar × 1860 s × 2 streams). Current TM99
+output is about **1.8 GiB** at 0.2 m voxels because the Z gate keeps the
+full 715 m climb plus cliff margin.
 
 To force a specific map origin (instead of the first INS fix):
 
@@ -139,7 +134,8 @@ vehicle structure rather than environment.
 | `--min-range / --max-range` | Drop points outside this radius from the sensor (lidar frame). Default 2 m … 120 m. |
 | `--ego-bbox`          | "x_min,x_max,y_min,y_max,z_min,z_max" in IMU/FLU metres. Default `-3,+3,-1.2,+1.2,-1.8,+0.5`. Pass `none` to disable. |
 | `--save-ego-debug-pcd`| Also write `ego_returns.pcd` containing only the bbox-rejected points (debug aid). |
-| `--min-z / --max-z`   | Drop ENU-frame points outside this altitude band. Default −5 m to +300 m. |
+| `--min-z / --max-z`   | Override the auto-computed ENU altitude band (absolute m). By default the band is derived from the trajectory's actual altitude range (`traj_z_min − 10` to `traj_z_max + 100`). The previous fixed `+300 m` cap silently truncated tracks with > ~280 m elevation gain (e.g. TM99 climbs 715 m) — see commit history. |
+| `--min-z-margin / --max-z-margin` | Margin below / above the trajectory altitude range to keep when auto-computing the Z gate. Defaults `10 m` / `100 m` (+100 captures cliff face above the road). |
 | `--accept-propagated` | Allow INS_PROPOGATED fixes (no RTK lock). Default off. |
 | `--max-pose-dt-ms`    | Reject a scan if no pose within this many ms. Default 50. |
 | `--half-lane-width`   | Lateral offset for the lanelet's left/right boundaries (m). Default 1.75. |
@@ -171,13 +167,13 @@ if needed.
 Sensor extrinsics live in
 [`db3_to_mcap_converter/sensor_tf_no_camera.yaml`](../db3_to_mcap_converter/sensor_tf_no_camera.yaml)
 (official transforms supplied by Whale Dynamic). They're baked into the
-bag by `inject_tf_static.py`; `build_map.py` reads `/tf_static` from the
-bag at runtime, so it picks up whatever calibration was injected.
+bag by `convert_db3_to_mcap.py`; `build_map.py` reads `/tf_static` from
+the bag at runtime, so it picks up whatever calibration was injected.
 
 ## Files
 
 ```
-build_map.py             orchestrator + CLI for the AWSIM map build
+build_map.py             orchestrator + CLI for the Autoware-side map build
 lib_pose.py              ENU frame, geodetic↔ECEF, imu→ENU rotation,
                           /tf_static loader
 lib_pcd.py               streaming voxel accumulator + binary PCD writer
@@ -185,9 +181,9 @@ lib_lanelet2.py          centerline → boundaries → Lanelet2 OSM
 requirements.txt
 ```
 
-## Loading in AWSIM
+## Loading in Autoware
 
-Drop the deliverables into your AWSIM map config:
+Drop the deliverables into your Autoware map directory:
 
 ```
 my_map/
